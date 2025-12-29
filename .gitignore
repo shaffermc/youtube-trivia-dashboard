@@ -39,5 +39,6 @@ Thumbs.db
 coverage/
 *.swp
 
-backend/client_secrets.json
-backend/token.json
+vps/backend/.env
+vps/backend/client_secrets.json
+vps/backend/token.json
