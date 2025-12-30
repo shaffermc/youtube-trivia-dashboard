@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import AddQuestionForm from "./components/AddQuestionForm";
+import AddQuestionForm from "./AddQuestionForm";
+import QuestionsList from "./QuestionsList";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
 
@@ -20,6 +21,7 @@ function App() {
     <div style={{ padding: 20, fontFamily: "sans-serif" }}>
       <h1>{msg}</h1>
       <AddQuestionForm />
+      <QuestionsList />
     </div>
   );
 }

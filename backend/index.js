@@ -50,6 +50,64 @@ app.post("/questions", async (req, res) => {
   }
 });
 
+// Get all questions
+app.get("/questions", async (req, res) => {
+  try {
+    const questions = await Question.find().sort({ createdAt: -1 });
+    res.json(questions);
+  } catch (err) {
+    console.error("Error fetching questions:", err);
+    res.status(500).json({ error: "Failed to fetch questions" });
+  }
+});
+
+// Update a question
+app.put("/questions/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { questionText, answerText } = req.body;
+
+    if (!questionText || !answerText) {
+      return res
+        .status(400)
+        .json({ error: "questionText and answerText are required" });
+    }
+
+    const updated = await Question.findByIdAndUpdate(
+      id,
+      { questionText, answerText },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: "Question not found" });
+    }
+
+    res.json(updated);
+  } catch (err) {
+    console.error("Error updating question:", err);
+    res.status(500).json({ error: "Failed to update question" });
+  }
+});
+
+// Delete a question
+app.delete("/questions/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Question.findByIdAndDelete(id);
+
+    if (!deleted) {
+      return res.status(404).json({ error: "Question not found" });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error deleting question:", err);
+    res.status(500).json({ error: "Failed to delete question" });
+  }
+});
+
+
 app.get("/scores/highscores", async (req, res) => {
   try {
     const highs = await Score.find().sort({ score: -1 }).limit(5);
