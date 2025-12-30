@@ -4,6 +4,7 @@ const cors = require("cors");
 const mongoose = require("mongoose");
 const Score = require("./models/Score");
 const Question = require("./models/Question");
+const triviaEngine = require("./services/triviaEngine");
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -107,7 +108,6 @@ app.delete("/questions/:id", async (req, res) => {
   }
 });
 
-
 app.get("/scores/highscores", async (req, res) => {
   try {
     const highs = await Score.find().sort({ score: -1 }).limit(5);
@@ -117,14 +117,31 @@ app.get("/scores/highscores", async (req, res) => {
     res.status(500).json({ error: "Failed to load highscores" });
   }
 });
-// Later we’ll mount routes here, like:
-// app.use("/api/questions", require("./routes/questions"));
 
-// after app.use(express.json())
-app.use("/dev", require("./routes/devTest"));
+app.post("/game/start", async (req, res) => {
+  try {
+    const { liveChatId } = req.body;
 
+    if (!liveChatId) {
+      return res.status(400).json({ error: "liveChatId is required" });
+    }
 
-const PORT = process.env.PORT || 3002;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+    await triviaEngine.start(liveChatId);
 
+    res.json({ running: triviaEngine.isRunning() });
+  } catch (err) {
+    console.error("Start game error:", err);
+    res.status(500).json({ error: "Failed to start game" });
+  }
+});
 
+// Stop trivia
+app.post("/game/stop", (req, res) => {
+  triviaEngine.stop();
+  res.json({ running: triviaEngine.isRunning() });
+});
+
+// Get current game state
+app.get("/game/state", (req, res) => {
+  res.json(triviaEngine.getState());
+});
