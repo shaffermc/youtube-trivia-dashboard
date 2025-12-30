@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import AddQuestionForm from "./AddQuestionForm";
-import QuestionsList from "./QuestionsList";
+import AddQuestionForm from "./components/AddQuestionForm";
+import QuestionsList from "./components/QuestionsList";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
 
