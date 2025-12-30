@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
+import AddQuestionForm from "./AddQuestionForm";
 
-// In dev: VITE_API_URL=http://localhost:3002
-// In prod: VITE_API_URL=/trivia/api
 const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
 
 function App() {
@@ -17,7 +16,12 @@ function App() {
       });
   }, []);
 
-  return <h1>{msg}</h1>;
+  return (
+    <div style={{ padding: 20, fontFamily: "sans-serif" }}>
+      <h1>{msg}</h1>
+      <AddQuestionForm />
+    </div>
+  );
 }
 
 export default App;

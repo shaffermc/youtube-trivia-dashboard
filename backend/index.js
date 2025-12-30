@@ -28,6 +28,28 @@ app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
+// Add a new question
+app.post("/questions", async (req, res) => {
+  try {
+    const { questionText, answerText } = req.body;
+
+    if (!questionText || !answerText) {
+      return res.status(400).json({ error: "questionText and answerText are required" });
+    }
+
+    const question = await Question.create({
+      questionText,
+      answerText,
+      createdBy: "dashboard", // optional
+    });
+
+    res.status(201).json(question);
+  } catch (err) {
+    console.error("Error creating question:", err);
+    res.status(500).json({ error: "Failed to create question" });
+  }
+});
+
 app.get("/scores/highscores", async (req, res) => {
   try {
     const highs = await Score.find().sort({ score: -1 }).limit(5);
