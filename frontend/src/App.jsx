@@ -1,21 +1,36 @@
 import { useEffect, useState } from "react";
 
-const API_BASE = import.meta.env.VITE_API_URL || "";
+const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
 
 function App() {
-  const [msg, setMsg] = useState("Loading...");
+  const [scores, setScores] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch(`${API_BASE}/`)
+    fetch(`${API_BASE}/scores/highscores`)
       .then((res) => res.json())
-      .then((data) => setMsg(data.message))
+      .then((data) => setScores(data))
       .catch((err) => {
         console.error("API error:", err);
-        setMsg("Failed to load message");
+        setError("Failed to load highscores");
       });
   }, []);
 
-  return <h1>{msg}</h1>;
+  if (error) return <h1>{error}</h1>;
+
+  return (
+    <div style={{ padding: 20, fontFamily: "sans-serif" }}>
+      <h1>YouTube Trivia Dashboard</h1>
+      <h2>High Scores</h2>
+      <ul>
+        {scores.map((s) => (
+          <li key={s._id}>
+            {s.userName}: {s.score}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 }
 
 export default App;

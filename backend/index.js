@@ -2,7 +2,8 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
-
+const Score = require("./models/Score");
+const Question = require("./models/Question");
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -23,6 +24,19 @@ app.get("/", (req, res) => {
   res.json({ message: "Trivia backend is running" });
 });
 
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+app.get("/api/scores/highscores", async (req, res) => {
+  try {
+    const highs = await Score.find().sort({ score: -1 }).limit(5);
+    res.json(highs);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to load highscores" });
+  }
+});
 // Later we’ll mount routes here, like:
 // app.use("/api/questions", require("./routes/questions"));
 
@@ -32,3 +46,5 @@ app.use("/api/dev", require("./routes/devTest"));
 
 const PORT = process.env.PORT || 3002;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+
