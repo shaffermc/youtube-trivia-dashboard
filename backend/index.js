@@ -24,11 +24,11 @@ app.get("/", (req, res) => {
   res.json({ message: "Trivia backend is running" });
 });
 
-app.get("/api/health", (req, res) => {
+app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
-app.get("/api/scores/highscores", async (req, res) => {
+app.get("/scores/highscores", async (req, res) => {
   try {
     const highs = await Score.find().sort({ score: -1 }).limit(5);
     res.json(highs);
@@ -41,7 +41,7 @@ app.get("/api/scores/highscores", async (req, res) => {
 // app.use("/api/questions", require("./routes/questions"));
 
 // after app.use(express.json())
-app.use("/api/dev", require("./routes/devTest"));
+app.use("/dev", require("./routes/devTest"));
 
 
 const PORT = process.env.PORT || 3002;
