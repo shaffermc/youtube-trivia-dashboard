@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const Score = require("./models/Score");
 const Question = require("./models/Question");
 const triviaEngine = require("./services/triviaEngine");
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -144,4 +145,10 @@ app.post("/game/stop", (req, res) => {
 // Get current game state
 app.get("/game/state", (req, res) => {
   res.json(triviaEngine.getState());
+});
+
+const PORT = process.env.PORT || 3002;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
