@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
 
@@ -9,41 +9,87 @@ export default function ChatMessagesViewer() {
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const fetchMessages = async (useNextPage) => {
-    if (!liveChatId.trim()) {
-      setStatus("Enter a liveChatId first.");
-      return;
-    }
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [pollInterval, setPollInterval] = useState(2000); // default 2s
 
-    setLoading(true);
-    setStatus("");
-
-    try {
-      const params = new URLSearchParams({ liveChatId });
-      if (useNextPage && pageToken) {
-        params.set("pageToken", pageToken);
+  const fetchMessages = useCallback(
+    async (reset = false) => {
+      if (!liveChatId.trim()) {
+        setStatus("Enter a liveChatId first.");
+        return;
       }
 
-      const res = await fetch(`${API_BASE}/youtube/chat?${params.toString()}`);
-      const data = await res.json();
+      setLoading(true);
+      if (reset) setStatus("");
 
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to load chat");
+      try {
+        const params = new URLSearchParams({ liveChatId });
+
+        if (!reset && pageToken) {
+          params.set("pageToken", pageToken);
+        }
+
+        const res = await fetch(`${API_BASE}/youtube/chat?${params.toString()}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to load chat");
+        }
+
+        const newMessages = data.messages || [];
+        const nextToken = data.nextPageToken || "";
+        const intervalMs = data.pollingIntervalMillis || 2000;
+
+        setPollInterval(intervalMs);
+        setPageToken(nextToken);
+
+        setMessages((prev) => {
+          if (reset) return newMessages;
+
+          const seen = new Set(prev.map((m) => m.id));
+          const deduped = newMessages.filter((m) => !seen.has(m.id));
+          return [...prev, ...deduped];
+        });
+
+        setStatus(
+          `Loaded ${newMessages.length} message(s)` +
+            (nextToken ? " (live…)" : "")
+        );
+      } catch (err) {
+        console.error("Chat load error:", err);
+        setStatus(err.message || "Error loading chat");
+      } finally {
+        setLoading(false);
       }
+    },
+    [liveChatId, pageToken]
+  );
 
-      setMessages(data.messages || []);
-      setPageToken(data.nextPageToken || "");
-      setStatus(
-        `Loaded ${data.messages?.length || 0} messages` +
-          (data.nextPageToken ? " (more available)" : "")
-      );
-    } catch (err) {
-      console.error("Chat load error:", err);
-      setStatus(err.message || "Error loading chat");
-    } finally {
-      setLoading(false);
-    }
+  const handleManualLoad = () => {
+    setMessages([]);
+    setPageToken("");
+    fetchMessages(true);
   };
+
+  useEffect(() => {
+    if (!autoRefresh || !liveChatId.trim()) return;
+
+    let cancelled = false;
+    let timerId;
+
+    const tick = async () => {
+      if (cancelled) return;
+      await fetchMessages(false);
+      if (!cancelled) timerId = setTimeout(tick, pollInterval);
+    };
+
+    timerId = setTimeout(tick, pollInterval);
+
+    return () => {
+      cancelled = true;
+      if (timerId) clearTimeout(timerId);
+    };
+  }, [autoRefresh, liveChatId, pollInterval, fetchMessages]);
 
   return (
     <div style={{ marginTop: 30 }}>
@@ -58,18 +104,20 @@ export default function ChatMessagesViewer() {
           style={{ width: "320px", marginRight: 8 }}
           placeholder="Paste liveChatId here"
         />
-        <button onClick={() => fetchMessages(false)} disabled={loading}>
+
+        <button onClick={handleManualLoad} disabled={loading}>
           {loading ? "Loading..." : "Load Messages"}
         </button>
-        {pageToken && (
-          <button
-            onClick={() => fetchMessages(true)}
-            style={{ marginLeft: 8 }}
-            disabled={loading}
-          >
-            Next Page
-          </button>
-        )}
+
+        <label style={{ marginLeft: 16 }}>
+          <input
+            type="checkbox"
+            checked={autoRefresh}
+            onChange={(e) => setAutoRefresh(e.target.checked)}
+            style={{ marginRight: 4 }}
+          />
+          Auto refresh
+        </label>
       </div>
 
       {status && <div style={{ marginBottom: 10 }}>{status}</div>}
@@ -87,13 +135,7 @@ export default function ChatMessagesViewer() {
           <p>No messages loaded.</p>
         ) : (
           messages.map((m) => (
-            <div
-              key={m.id}
-              style={{
-                borderBottom: "1px solid #eee",
-                padding: "4px 0",
-              }}
-            >
+            <div key={m.id} style={{ borderBottom: "1px solid #eee", padding: "4px 0" }}>
               <div style={{ fontWeight: "bold" }}>{m.author}</div>
               <div>{m.text}</div>
               <div style={{ fontSize: "0.8em", color: "#666" }}>
