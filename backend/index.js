@@ -5,7 +5,8 @@ const mongoose = require("mongoose");
 const Score = require("./models/Score");
 const Question = require("./models/Question");
 const triviaEngine = require("./services/triviaEngine");
-const { listChatMessages } = require("./services/youtubeClient");
+const { listChatMessages, sendChatMessage } = require("./services/youtubeClient");
+
 
 const app = express();
 app.use(cors());
@@ -162,6 +163,25 @@ app.get("/youtube/chat", async (req, res) => {
   } catch (err) {
     console.error("Error fetching chat messages:", err.response?.data || err.message);
     res.status(500).json({ error: "Failed to fetch chat messages" });
+  }
+});
+
+app.post("/youtube/chat/send", async (req, res) => {
+  try {
+    const { liveChatId, message } = req.body;
+
+    if (!liveChatId || !message) {
+      return res
+        .status(400)
+        .json({ error: "liveChatId and message are required" });
+    }
+
+    const result = await sendChatMessage(liveChatId, message);
+    res.json({ success: true, messageId: result.id });
+  } catch (err) {
+    console.error("Error sending chat message:");
+    console.error(err.response?.data || err.message);
+    res.status(500).json({ error: "Failed to send chat message" });
   }
 });
 

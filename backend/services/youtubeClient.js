@@ -8,7 +8,6 @@ let youtubeClient = null;
 async function getYouTubeClient() {
   if (youtubeClient) return youtubeClient;
 
-  // Adjust this path if your client_secrets.json is elsewhere
   const credentialsPath = path.join(__dirname, "..", "client_secrets.json");
   const creds = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
 
@@ -19,7 +18,10 @@ async function getYouTubeClient() {
     redirect_uris[0]
   );
 
-  // You need to put your refresh token in .env as YT_REFRESH_TOKEN
+  if (!process.env.YT_REFRESH_TOKEN) {
+    throw new Error("YT_REFRESH_TOKEN is not set in .env");
+  }
+
   oAuth2Client.setCredentials({
     refresh_token: process.env.YT_REFRESH_TOKEN,
   });
@@ -54,8 +56,31 @@ async function listChatMessages(liveChatId, pageToken) {
   return {
     messages,
     nextPageToken: res.data.nextPageToken || null,
-    pollingIntervalMillis: res.data.pollingIntervalMillis || 0,
+    pollingIntervalMillis: res.data.pollingIntervalMillis || 2000,
   };
 }
 
-module.exports = { listChatMessages };
+// 🔹 NEW: send a message to chat
+async function sendChatMessage(liveChatId, messageText) {
+  const yt = await getYouTubeClient();
+
+  const res = await yt.liveChatMessages.insert({
+    part: ["snippet"],
+    requestBody: {
+      snippet: {
+        type: "textMessageEvent",
+        liveChatId,
+        textMessageDetails: {
+          messageText,
+        },
+      },
+    },
+  });
+
+  return res.data;
+}
+
+module.exports = {
+  listChatMessages,
+  sendChatMessage,
+};
