@@ -5,10 +5,10 @@ const path = require("path");
 
 let youtubeClient = null;
 
-// TODO: adjust paths/credentials as needed
 async function getYouTubeClient() {
   if (youtubeClient) return youtubeClient;
 
+  // Adjust this path if your client_secrets.json is elsewhere
   const credentialsPath = path.join(__dirname, "..", "client_secrets.json");
   const creds = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
 
@@ -19,8 +19,7 @@ async function getYouTubeClient() {
     redirect_uris[0]
   );
 
-  // For now assume you've already obtained and saved a refresh token
-  // You can store it in an env var or a file
+  // You need to put your refresh token in .env as YT_REFRESH_TOKEN
   oAuth2Client.setCredentials({
     refresh_token: process.env.YT_REFRESH_TOKEN,
   });
@@ -33,43 +32,30 @@ async function getYouTubeClient() {
   return youtubeClient;
 }
 
-async function sendChatMessage(liveChatId, message) {
-  const yt = await getYouTubeClient();
-
-  await yt.liveChatMessages.insert({
-    part: ["snippet"],
-    requestBody: {
-      snippet: {
-        type: "textMessageEvent",
-        liveChatId,
-        textMessageDetails: {
-          messageText: message,
-        },
-      },
-    },
-  });
-}
-
-async function fetchNewMessages(liveChatId, pageToken) {
+async function listChatMessages(liveChatId, pageToken) {
   const yt = await getYouTubeClient();
 
   const res = await yt.liveChatMessages.list({
     liveChatId,
     part: ["id", "snippet", "authorDetails"],
     pageToken,
+    maxResults: 50,
   });
 
-  const messages = res.data.items.map((m) => ({
+  const items = res.data.items || [];
+
+  const messages = items.map((m) => ({
     id: m.id,
-    displayName: m.authorDetails.displayName,
-    displayMessage: m.snippet.displayMessage,
-    publishedAt: m.snippet.publishedAt,
+    author: m.authorDetails?.displayName,
+    text: m.snippet?.displayMessage,
+    publishedAt: m.snippet?.publishedAt,
   }));
 
   return {
     messages,
-    nextPageToken: res.data.nextPageToken,
+    nextPageToken: res.data.nextPageToken || null,
+    pollingIntervalMillis: res.data.pollingIntervalMillis || 0,
   };
 }
 
-module.exports = { getYouTubeClient, sendChatMessage, fetchNewMessages };
+module.exports = { listChatMessages };

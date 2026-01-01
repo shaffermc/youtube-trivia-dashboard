@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import AddQuestionForm from "./components/AddQuestionForm";
 import QuestionsList from "./components/QuestionsList";
 import GameControls from "./components/GameControls";
+import ChatMessagesViewer from "./components/ChatMessagesViewer";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
 
@@ -24,6 +25,7 @@ function App() {
       <GameControls />
       <AddQuestionForm />
       <QuestionsList />
+      <ChatMessagesViewer />
     </div>
   );
 }

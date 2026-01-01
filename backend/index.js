@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const Score = require("./models/Score");
 const Question = require("./models/Question");
 const triviaEngine = require("./services/triviaEngine");
+const { listChatMessages } = require("./services/youtubeClient");
 
 const app = express();
 app.use(cors());
@@ -146,6 +147,24 @@ app.post("/game/stop", (req, res) => {
 app.get("/game/state", (req, res) => {
   res.json(triviaEngine.getState());
 });
+
+// Get recent YouTube chat messages by liveChatId
+app.get("/youtube/chat", async (req, res) => {
+  try {
+    const { liveChatId, pageToken } = req.query;
+
+    if (!liveChatId) {
+      return res.status(400).json({ error: "liveChatId is required" });
+    }
+
+    const data = await listChatMessages(liveChatId, pageToken);
+    res.json(data);
+  } catch (err) {
+    console.error("Error fetching chat messages:", err.response?.data || err.message);
+    res.status(500).json({ error: "Failed to fetch chat messages" });
+  }
+});
+
 
 const PORT = process.env.PORT || 3002;
 
