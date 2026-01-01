@@ -5,7 +5,7 @@ const path = require("path");
 const { google } = require("googleapis");
 
 async function main() {
-  const credentialsPath = path.join(__dirname, "client_secrets.json");
+  const credentialsPath = path.join(__dirname, "..", "client_secrets.json");
   const creds = JSON.parse(fs.readFileSync(credentialsPath, "utf8"));
 
   const { client_id, client_secret, redirect_uris } = creds.installed;
