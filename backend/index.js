@@ -138,6 +138,7 @@ app.post("/game/start", async (req, res) => {
   }
 });
 
+
 // Stop trivia
 app.post("/game/stop", (req, res) => {
   triviaEngine.stop();

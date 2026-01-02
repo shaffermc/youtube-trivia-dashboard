@@ -1,48 +1,66 @@
 // backend/services/triviaEngine.js
+const { listChatMessages, sendChatMessage } = require("./youtubeClient");
 const Question = require("../models/Question");
 const Score = require("../models/Score");
-const { getYouTubeClient, sendChatMessage, fetchNewMessages } = require("./youtubeClient");
 
 class TriviaEngine {
   constructor() {
     this.running = false;
-    this.currentQuestion = null;
-    this.currentAnswer = null;
-    this.currentQuestionId = null;
-    this.stage = 0;
+    this.liveChatId = null;
+
+    this.currentQuestion = null; // full doc
+    this.currentAnswer = "";
+    this.questionAskedAt = null;
     this.questionAnswered = false;
-    this.askTime = null;
-    this.hint1 = "";
-    this.questionTimer = null;
+
     this.pollTimer = null;
-    this.liveChatId = null; // set when starting
-    this.lastPageToken = null;
+    this.pageToken = null;
+    this.seenMessageIds = new Set();
+
+    this.defaultPollInterval = 2000;
+    this.questionTimeoutMs = 30000; // 30s per question for now
+    this.questionTimeoutTimer = null;
   }
 
+  // ---------- PUBLIC API used by Express ----------
+
   async start(liveChatId) {
-    if (this.running) return;
-    this.running = true;
+    if (!liveChatId) {
+      throw new Error("liveChatId is required to start trivia");
+    }
+
+    console.log("[TriviaEngine] Starting with liveChatId:", liveChatId);
+
     this.liveChatId = liveChatId;
-    this.stage = 0;
-    this.questionAnswered = false;
+    this.running = true;
+    this.pageToken = null;
+    this.seenMessageIds.clear();
 
-    await this._loadNewQuestion();
-
-    // Ask question / hint cycle every 10s (like your C#)
-    this.questionTimer = setInterval(() => this._questionTick(), 10_000);
-
-    // Poll YouTube chat every 2s
-    this.pollTimer = setInterval(() => this._pollChat(), 2_000);
-
-    await sendChatMessage(this.liveChatId, "Trivia started! First question coming up...");
+    await sendChatMessage(this.liveChatId, "Trivia Bot started! First question coming up...");
+    await this.askNewQuestion();
+    this.startPollingLoop();
   }
 
   stop() {
+    console.log("[TriviaEngine] Stopping");
     this.running = false;
-    if (this.questionTimer) clearInterval(this.questionTimer);
-    if (this.pollTimer) clearInterval(this.pollTimer);
-    this.questionTimer = null;
-    this.pollTimer = null;
+    this.liveChatId = null;
+
+    if (this.pollTimer) {
+      clearTimeout(this.pollTimer);
+      this.pollTimer = null;
+    }
+    if (this.questionTimeoutTimer) {
+      clearTimeout(this.questionTimeoutTimer);
+      this.questionTimeoutTimer = null;
+    }
+
+    this.currentQuestion = null;
+    this.currentAnswer = "";
+    this.questionAskedAt = null;
+    this.questionAnswered = false;
+    this.pageToken = null;
+    this.seenMessageIds.clear();
   }
 
   isRunning() {
@@ -52,116 +70,155 @@ class TriviaEngine {
   getState() {
     return {
       running: this.running,
-      currentQuestion: this.currentQuestion,
-      stage: this.stage,
+      liveChatId: this.liveChatId,
+      currentQuestion: this.currentQuestion
+        ? {
+            id: this.currentQuestion._id,
+            text: this.currentQuestion.questionText,
+            answer: this.currentAnswer,
+          }
+        : null,
       questionAnswered: this.questionAnswered,
-      askTime: this.askTime,
+      questionAskedAt: this.questionAskedAt,
     };
   }
 
-  async _loadNewQuestion() {
+  // ---------- Internal helpers ----------
+
+  async askNewQuestion() {
+    if (!this.running || !this.liveChatId) return;
+
+    // Clear any previous timeout
+    if (this.questionTimeoutTimer) {
+      clearTimeout(this.questionTimeoutTimer);
+      this.questionTimeoutTimer = null;
+    }
+
+    // Pick a random question from Mongo
     const count = await Question.countDocuments();
-    if (!count) {
-      this.currentQuestion = "No questions yet";
-      this.currentAnswer = "";
-      this.currentQuestionId = null;
+    if (count === 0) {
+      await sendChatMessage(this.liveChatId, "No trivia questions found in the database.");
       return;
     }
 
-    const randomSkip = Math.floor(Math.random() * count);
-    const q = await Question.findOne().skip(randomSkip);
+    const random = Math.floor(Math.random() * count);
+    const q = await Question.findOne().skip(random);
 
-    this.currentQuestion = q.questionText;
-    this.currentAnswer = q.answerText;
-    this.currentQuestionId = q._id;
-
-    // Hint: first + last letter, rest underscores
-    this.hint1 = this.currentAnswer.replace(
-      /(?<=.)(.?)(?=.*$)/g, // simple-ish mask
-      (m, ch, idx) => (ch === " " ? " " : "_")
-    );
-
-    this.stage = 0;
+    this.currentQuestion = q;
+    this.currentAnswer = (q.answerText || "").trim();
     this.questionAnswered = false;
-  }
+    this.questionAskedAt = new Date();
 
-  async _questionTick() {
-    if (!this.running || !this.currentQuestion) return;
+    console.log("[TriviaEngine] Asking question:", q.questionText, "| Answer:", this.currentAnswer);
 
-    try {
-      if (this.stage === 0) {
-        this.stage = 1;
-        this.askTime = new Date();
-        await sendChatMessage(this.liveChatId, `${this.currentQuestion}?`);
-      } else if (this.stage === 1) {
-        this.stage = 2;
-        await sendChatMessage(this.liveChatId, `Hint: ${this.hint1}`);
-      } else if (this.stage === 2) {
-        // time up, reveal answer, load next
+    await sendChatMessage(this.liveChatId, `${q.questionText}?`);
+
+    // Set a timeout for "time's up"
+    this.questionTimeoutTimer = setTimeout(async () => {
+      if (!this.running) return;
+      if (!this.questionAnswered) {
         await sendChatMessage(
           this.liveChatId,
           `Time is up! The correct answer was: ${this.currentAnswer}`
         );
-        await this._loadNewQuestion();
       }
-    } catch (err) {
-      console.error("Question tick error:", err);
-    }
+      // Ask the next question
+      await this.askNewQuestion();
+    }, this.questionTimeoutMs);
   }
 
-  async _pollChat() {
-    if (!this.running || !this.currentAnswer || !this.liveChatId) return;
+  startPollingLoop() {
+    if (this.pollTimer) {
+      clearTimeout(this.pollTimer);
+      this.pollTimer = null;
+    }
+    this.pollOnce();
+  }
+
+  async pollOnce() {
+    if (!this.running || !this.liveChatId) return;
 
     try {
-      const { messages, nextPageToken } = await fetchNewMessages(
-        this.liveChatId,
-        this.lastPageToken
-      );
-      this.lastPageToken = nextPageToken;
+      const { messages, nextPageToken, pollingIntervalMillis } =
+        await listChatMessages(this.liveChatId, this.pageToken);
 
+      // Advance the page token so we only see new messages
+      this.pageToken = nextPageToken || this.pageToken;
+
+      const interval =
+        typeof pollingIntervalMillis === "number" && pollingIntervalMillis > 0
+          ? pollingIntervalMillis
+          : this.defaultPollInterval;
+
+      // Process new messages
       for (const msg of messages) {
-        const { displayName, displayMessage, publishedAt } = msg;
+        if (this.seenMessageIds.has(msg.id)) continue;
+        this.seenMessageIds.add(msg.id);
 
-        // ignore our own bot messages
-        if (displayName === "Trivia Bot") continue;
-
-        // commands
-        if (displayMessage.includes("!stop")) {
-          this.stop();
-          await sendChatMessage(this.liveChatId, `Trivia stopped by ${displayName}`);
-          return;
-        }
-
-        // answer check
-        if (
-          displayMessage.toLowerCase().includes(this.currentAnswer.toLowerCase()) &&
-          !this.questionAnswered
-        ) {
-          this.questionAnswered = true;
-
-          const delaySec = Math.floor((Date.now() - new Date(publishedAt).getTime()) / 1000);
-          await sendChatMessage(
-            this.liveChatId,
-            `You got it, ${displayName}! [${delaySec}s] The correct answer was: ${this.currentAnswer}.`
-          );
-
-          await this._awardPoint(displayName);
-          await this._loadNewQuestion(); // next question
-          break;
-        }
+        await this.handleIncomingMessage(msg);
       }
+
+      // Schedule the next poll
+      this.pollTimer = setTimeout(() => this.pollOnce(), interval);
     } catch (err) {
-      console.error("Poll chat error:", err);
+      console.error("[TriviaEngine] Error in pollOnce:", err.response?.data || err.message);
+      // Back off a bit if error
+      this.pollTimer = setTimeout(() => this.pollOnce(), 5000);
     }
   }
 
-  async _awardPoint(userName) {
-    // upsert score
-    await Score.findOneAndUpdate(
-      { userName },
-      { $inc: { score: 1 } },
-      { upsert: true, new: true }
-    );
+  async handleIncomingMessage(msg) {
+    if (!this.running || !this.currentQuestion) return;
+    if (this.questionAnswered) return; // already answered
+
+    const text = (msg.text || "").toLowerCase();
+    const answer = this.currentAnswer.toLowerCase();
+
+    // Simple substring match; you can improve this later (trim, punctuation, etc.)
+    if (text.includes(answer) && answer.length > 0) {
+      this.questionAnswered = true;
+
+      const now = new Date();
+      const delaySec = Math.round((now - this.questionAskedAt) / 1000);
+
+      console.log(
+        `[TriviaEngine] Correct answer from ${msg.author}: "${msg.text}" (${delaySec}s)`
+      );
+
+      await sendChatMessage(
+        this.liveChatId,
+        `You got it, ${msg.author}! [${delaySec}s] The correct answer was: ${this.currentAnswer}.`
+      );
+
+      // Award a point
+      await this.addPoint(msg.author);
+
+      // Ask the next question after a short pause
+      setTimeout(() => {
+        if (this.running) {
+          this.askNewQuestion().catch((err) =>
+            console.error("[TriviaEngine] Error asking next question:", err.message)
+          );
+        }
+      }, 3000);
+    }
+  }
+
+  async addPoint(userName) {
+    try {
+      let scoreDoc = await Score.findOne({ userName });
+
+      if (!scoreDoc) {
+        scoreDoc = await Score.create({ userName, score: 1 });
+      } else {
+        scoreDoc.score += 1;
+        await scoreDoc.save();
+      }
+
+      console.log("[TriviaEngine] Updated score for", userName, "=>", scoreDoc.score);
+    } catch (err) {
+      console.error("[TriviaEngine] Error updating score:", err.message);
+    }
   }
 }
 
