@@ -7,6 +7,7 @@ class TriviaEngine {
   constructor() {
     this.running = false;
     this.liveChatId = null;
+    this.lastLiveChatId = null; // to know when stream changes
 
     this.currentQuestion = null; // full doc
     this.currentAnswer = "";
@@ -15,6 +16,7 @@ class TriviaEngine {
 
     this.pollTimer = null;
     this.pageToken = null;
+
     this.seenMessageIds = new Set();
 
     this.defaultPollInterval = 2000;
@@ -22,24 +24,26 @@ class TriviaEngine {
     this.questionTimeoutTimer = null;
   }
 
+
   // ---------- PUBLIC API used by Express ----------
 
-  async start(liveChatId) {
-    if (!liveChatId) {
-      throw new Error("liveChatId is required to start trivia");
-    }
-
-    console.log("[TriviaEngine] Starting with liveChatId:", liveChatId);
-
-    this.liveChatId = liveChatId;
-    this.running = true;
-    this.pageToken = null;
-    this.seenMessageIds.clear();
-
-    await sendChatMessage(this.liveChatId, "Trivia Bot started! First question coming up...");
-    await this.askNewQuestion();
-    this.startPollingLoop();
+ async start(liveChatId) {
+  if (!liveChatId) {
+    throw new Error("liveChatId is required to start trivia");
   }
+
+  console.log("[TriviaEngine] Starting with liveChatId:", liveChatId);
+
+  // If we’re starting on a *different* stream, clear seen IDs
+  if (this.lastLiveChatId !== liveChatId) {
+    this.seenMessageIds.clear();
+    this.lastLiveChatId = liveChatId;
+  }
+
+  this.liveChatId = liveChatId;
+  this.running = true;
+  this.pageToken = null;
+ }
 
   stop() {
     console.log("[TriviaEngine] Stopping");
@@ -60,7 +64,6 @@ class TriviaEngine {
     this.questionAskedAt = null;
     this.questionAnswered = false;
     this.pageToken = null;
-    this.seenMessageIds.clear();
   }
 
   isRunning() {
@@ -171,6 +174,13 @@ class TriviaEngine {
     if (!this.running || !this.currentQuestion) return;
     if (this.questionAnswered) return; // already answered
 
+      // Ignore messages that were sent before we asked this question
+    if (this.questionAskedAt && msg.publishedAt) {
+      const msgTime = new Date(msg.publishedAt);
+      if (msgTime < this.questionAskedAt) {
+        return;
+      }
+    }
     const text = (msg.text || "").toLowerCase();
     const answer = this.currentAnswer.toLowerCase();
 
