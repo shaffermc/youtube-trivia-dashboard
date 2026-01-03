@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
 
-export default function QuestionsList() {
+export default function QuestionsList({ userName }) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");
@@ -13,13 +13,18 @@ export default function QuestionsList() {
 
   // Load questions
   useEffect(() => {
+    if (!userName) {
+      setQuestions([]);
+      return;
+    }
     const fetchQuestions = async () => {
       setLoading(true);
-      setStatus("");
+      setStatus("Loading questions");
       try {
-        const res = await fetch(`${API_BASE}/questions`);
+        const res = await fetch(`${API_BASE}/questions?userName=${encodeURIComponent(userName)}`);
         const data = await res.json();
         setQuestions(data);
+        setStatus("");
       } catch (err) {
         console.error("Error loading questions:", err);
         setStatus("Failed to load questions");
@@ -29,7 +34,7 @@ export default function QuestionsList() {
     };
 
     fetchQuestions();
-  }, []);
+  }, [userName]);
 
   const startEdit = (q) => {
     setEditingId(q._id);

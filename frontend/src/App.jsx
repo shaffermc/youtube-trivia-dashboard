@@ -22,9 +22,11 @@ function App() {
   return (
     <div style={{ padding: 20, fontFamily: "sans-serif" }}>
       <h1>{msg}</h1>
-      <ConnectionInfoPanel />
+        <ConnectionInfoPanel
+        onLoginUser={(userName) => setCurrentUserName(userName)}
+      />
       <AddQuestionForm />
-      <QuestionsList />
+      <QuestionsList  userName={currentUserName} />
       <ChatMessagesViewer />
     </div>
   );

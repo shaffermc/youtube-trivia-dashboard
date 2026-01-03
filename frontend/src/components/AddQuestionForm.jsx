@@ -19,7 +19,7 @@ export default function AddQuestionForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ questionText, answerText }),
+        body: JSON.stringify({ questionText, answerText, userName, }),
       });
 
       if (!res.ok) {

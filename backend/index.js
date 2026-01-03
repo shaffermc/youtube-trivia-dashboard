@@ -100,16 +100,18 @@ app.post("/settings/save", async (req, res) => {
 // Add a new question
 app.post("/questions", async (req, res) => {
   try {
-    const { questionText, answerText } = req.body;
+    const { questionText, answerText, userName } = req.body;
 
     if (!questionText || !answerText) {
-      return res.status(400).json({ error: "questionText and answerText are required" });
+      return res
+        .status(400)
+        .json({ error: "questionText and answerText are required" });
     }
 
     const question = await Question.create({
       questionText,
       answerText,
-      createdBy: "dashboard", // optional
+      ownerUserName: userName || null,   // <--- associate with user
     });
 
     res.status(201).json(question);
@@ -119,16 +121,21 @@ app.post("/questions", async (req, res) => {
   }
 });
 
+
 // Get all questions
 app.get("/questions", async (req, res) => {
   try {
-    const questions = await Question.find().sort({ createdAt: -1 });
+    const { userName } = req.query;
+    const filter = userName ? { ownerUserName: userName } : {};
+
+    const questions = await Question.find(filter).sort({ createdAt: -1 });
     res.json(questions);
   } catch (err) {
     console.error("Error fetching questions:", err);
     res.status(500).json({ error: "Failed to fetch questions" });
   }
 });
+
 
 // Update a question
 app.put("/questions/:id", async (req, res) => {
@@ -202,7 +209,6 @@ app.post("/game/start", async (req, res) => {
     res.status(500).json({ error: "Failed to start game" });
   }
 });
-
 
 // Stop trivia
 app.post("/game/stop", (req, res) => {

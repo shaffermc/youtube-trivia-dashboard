@@ -2,7 +2,7 @@ import { useState } from "react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
 
-export default function ConnectionInfoPanel() {
+export default function ConnectionInfoPanel({ onLoginUser }) {
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
 
@@ -30,6 +30,10 @@ export default function ConnectionInfoPanel() {
       setYoutubeHost(data.youtubeHostName || "");
       setDelayMs(String(data.questionDelayMs || 30000));
       setMessage(data.defaultMessage || "");
+
+    if (onLoginUser) {
+      onLoginUser(userName);
+    }
 
       setStatus("Settings loaded.");
     } catch (err) {

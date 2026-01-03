@@ -12,6 +12,11 @@ const questionSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    ownerUserName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     // Optional extras for future:
     createdBy: {
       type: String,
