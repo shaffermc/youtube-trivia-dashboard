@@ -2,7 +2,7 @@ import { useState } from "react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
 
-export default function AddQuestionForm() {
+export default function AddQuestionForm({ userName }) {
   const [questionText, setQuestionText] = useState("");
   const [answerText, setAnswerText] = useState("");
   const [status, setStatus] = useState("");
@@ -11,6 +11,12 @@ export default function AddQuestionForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setStatus("");
+
+    if (!userName) {
+      setStatus("No user selected. Load settings first.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -19,7 +25,7 @@ export default function AddQuestionForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ questionText, answerText, userName, }),
+        body: JSON.stringify({ questionText, answerText, userName }),
       });
 
       if (!res.ok) {
@@ -68,15 +74,11 @@ export default function AddQuestionForm() {
           />
         </div>
 
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading || !userName}>
           {loading ? "Saving..." : "Add Question"}
         </button>
 
-        {status && (
-          <div style={{ marginTop: 8 }}>
-            {status}
-          </div>
-        )}
+        {status && <div style={{ marginTop: 8 }}>{status}</div>}
       </form>
     </div>
   );

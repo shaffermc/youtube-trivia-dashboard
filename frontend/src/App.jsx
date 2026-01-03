@@ -8,6 +8,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
 
 function App() {
   const [msg, setMsg] = useState("Loading...");
+  const [currentUserName, setCurrentUserName] = useState("");
 
   useEffect(() => {
     fetch(`${API_BASE}/health`)
@@ -22,11 +23,22 @@ function App() {
   return (
     <div style={{ padding: 20, fontFamily: "sans-serif" }}>
       <h1>{msg}</h1>
-        <ConnectionInfoPanel
+
+      <ConnectionInfoPanel
         onLoginUser={(userName) => setCurrentUserName(userName)}
       />
-      <AddQuestionForm />
-      <QuestionsList  userName={currentUserName} />
+
+      {currentUserName ? (
+        <>
+          <h2>Questions and Answers</h2>
+          <AddQuestionForm userName={currentUserName} />
+          <QuestionsList userName={currentUserName} />
+        </>
+      ) : (
+        <p>Enter username and load settings to edit questions.</p>
+      )}
+
+      <h2>Live Chat</h2>
       <ChatMessagesViewer />
     </div>
   );
