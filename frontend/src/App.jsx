@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import AddQuestionForm from "./components/AddQuestionForm";
 import QuestionsList from "./components/QuestionsList";
-import GameControls from "./components/GameControls";
 import ChatMessagesViewer from "./components/ChatMessagesViewer";
 import ConnectionInfoPanel from "./components/ConnectionInfoPanel";
 
