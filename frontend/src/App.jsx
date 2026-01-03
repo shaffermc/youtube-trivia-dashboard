@@ -24,7 +24,6 @@ function App() {
     <div style={{ padding: 20, fontFamily: "sans-serif" }}>
       <h1>{msg}</h1>
       <ConnectionInfoPanel />
-      <GameControls />
       <AddQuestionForm />
       <QuestionsList />
       <ChatMessagesViewer />
