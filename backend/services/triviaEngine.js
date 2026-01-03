@@ -7,6 +7,8 @@ class TriviaEngine {
   constructor() {
     this.running = false;
     this.liveChatId = null;
+    
+    this.youtubeName = null;
 
     this.currentQuestion = null; // full doc
     this.currentAnswer = "";
@@ -24,18 +26,19 @@ class TriviaEngine {
 
   // ---------- PUBLIC API used by Express ----------
 
-  async start(liveChatId) {
+  async start(liveChatId, youtubeName) {
     if (!liveChatId) {
       throw new Error("liveChatId is required to start trivia");
     }
 
     console.log("[TriviaEngine] Starting with liveChatId:", liveChatId);
+    console.log("[TriviaEngine] Host youtubeName:", youtubeName);
 
     this.liveChatId = liveChatId;
     this.running = true;
     this.pageToken = null;
     this.seenMessageIds.clear();
-
+    this.youtubeName = youtubeName ? youtubeName.trim().toLowerCase() : null;
     await sendChatMessage(this.liveChatId, "Trivia Bot started! First question coming up...");
     await this.askNewQuestion();
     this.startPollingLoop();
@@ -174,6 +177,12 @@ class TriviaEngine {
     const text = (msg.text || "").toLowerCase();
     const answer = this.currentAnswer.toLowerCase();
 
+    const authorName = (msg.author || "").trim().toLowerCase();
+    if (this.youtubeName && authorName === this.youtubeName) {
+       // ignore messages from the host / bot user
+      return;
+    }
+    
     // Simple substring match; you can improve this later (trim, punctuation, etc.)
     if (text.includes(answer) && answer.length > 0) {
       this.questionAnswered = true;

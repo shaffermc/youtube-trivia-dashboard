@@ -123,13 +123,13 @@ app.get("/scores/highscores", async (req, res) => {
 
 app.post("/game/start", async (req, res) => {
   try {
-    const { liveChatId } = req.body;
+    const { liveChatId, youtubeName } = req.body;
 
     if (!liveChatId) {
       return res.status(400).json({ error: "liveChatId is required" });
     }
 
-    await triviaEngine.start(liveChatId);
+    await triviaEngine.start(liveChatId, youtubeName);
 
     res.json({ running: triviaEngine.isRunning() });
   } catch (err) {
@@ -137,7 +137,6 @@ app.post("/game/start", async (req, res) => {
     res.status(500).json({ error: "Failed to start game" });
   }
 });
-
 
 // Stop trivia
 app.post("/game/stop", (req, res) => {
