@@ -22,27 +22,44 @@ class TriviaEngine {
     this.defaultPollInterval = 2000;
     this.questionTimeoutMs = 30000; // 30s per question for now
     this.questionTimeoutTimer = null;
+
+    this.totalQuestionsAsked = 0;
+    this.totalQuestionsAnswered = 0;
+    this.lastWinner = null;
+
   }
 
   // ---------- PUBLIC API used by Express ----------
 
-  async start(liveChatId, youtubeName) {
-    if (!liveChatId) {
-      throw new Error("liveChatId is required to start trivia");
+async start(liveChatId, youtubeName, delayMs) {
+if (!liveChatId) {
+    throw new Error("liveChatId is required to start trivia");
+}
+
+console.log("[TriviaEngine] Starting with liveChatId:", liveChatId);
+console.log("[TriviaEngine] Host youtubeName:", youtubeName);
+if (delayMs) {
+    const n = Number(delayMs);
+    if (Number.isFinite(n) && n > 1000) {
+    this.questionTimeoutMs = n;
+    console.log("[TriviaEngine] Using custom delayMs:", n);
     }
+}
 
-    console.log("[TriviaEngine] Starting with liveChatId:", liveChatId);
-    console.log("[TriviaEngine] Host youtubeName:", youtubeName);
+this.liveChatId = liveChatId;
+this.running = true;
+this.pageToken = null;
+this.seenMessageIds.clear();
 
-    this.liveChatId = liveChatId;
-    this.running = true;
-    this.pageToken = null;
-    this.seenMessageIds.clear();
-    this.youtubeName = youtubeName ? youtubeName.trim().toLowerCase() : null;
-    await sendChatMessage(this.liveChatId, "Trivia Bot started! First question coming up...");
-    await this.askNewQuestion();
-    this.startPollingLoop();
-  }
+this.youtubeName = youtubeName ? youtubeName.trim().toLowerCase() : null;
+
+await sendChatMessage(
+    this.liveChatId,
+    "Trivia Bot started! First question coming up..."
+);
+await this.askNewQuestion();
+this.startPollingLoop();
+}
 
   stop() {
     console.log("[TriviaEngine] Stopping");
@@ -83,6 +100,9 @@ class TriviaEngine {
         : null,
       questionAnswered: this.questionAnswered,
       questionAskedAt: this.questionAskedAt,
+      totalQuestionsAsked: this.totalQuestionsAsked,
+      totalQuestionsAnswered: this.totalQuestionsAnswered,
+      lastWinner: this.lastWinner,
     };
   }
 
@@ -111,6 +131,7 @@ class TriviaEngine {
     this.currentAnswer = (q.answerText || "").trim();
     this.questionAnswered = false;
     this.questionAskedAt = new Date();
+    this.totalQuestionsAsked++;
 
     console.log("[TriviaEngine] Asking question:", q.questionText, "| Answer:", this.currentAnswer);
 
@@ -182,7 +203,7 @@ class TriviaEngine {
        // ignore messages from the host / bot user
       return;
     }
-    
+
     // Simple substring match; you can improve this later (trim, punctuation, etc.)
     if (text.includes(answer) && answer.length > 0) {
       this.questionAnswered = true;
@@ -190,6 +211,8 @@ class TriviaEngine {
       const now = new Date();
       const delaySec = Math.round((now - this.questionAskedAt) / 1000);
 
+      this.totalQuestionsAnswered++;
+      this.lastWinner = { userName: msg.author, answer: this.currentAnswer, when: new Date(),};
       console.log(
         `[TriviaEngine] Correct answer from ${msg.author}: "${msg.text}" (${delaySec}s)`
       );
