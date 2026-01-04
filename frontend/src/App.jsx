@@ -63,7 +63,7 @@ function App() {
         {/* RIGHT COLUMN */}
         <div
           style={{
-            width: "50%",
+            width: "60%",
             minWidth: 320,
             maxWidth: 700,
             minHeight: 600,
