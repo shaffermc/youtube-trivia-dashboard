@@ -22,8 +22,7 @@ function App() {
 
   return (
     <div style={{ padding: 20, fontFamily: "sans-serif" }}>
-      <h2>Youtube Livestream Trivia Game</h2>
-      <h3>Create a new profile or login to run the game.</h3>
+
 
       {/* This is the TWO-COLUMN layout */}
       <div
@@ -64,9 +63,11 @@ function App() {
         {/* RIGHT COLUMN */}
         <div
           style={{
-            width: "40%",
+            width: "50%",
             minWidth: 320,
-            maxWidth: 500,
+            maxWidth: 700,
+            minHeight: 600,
+            maxHeight: 700,
             background: "#eef5ff", // <-- TEMP so you can see the column
             padding: 8,
             borderRadius: 4,

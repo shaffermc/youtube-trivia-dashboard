@@ -130,9 +130,8 @@ export default function ConnectionInfoPanel({ onLoginUser }) {
 
   return (
     <div style={{ border: "1px solid #ccc", padding: 16, marginBottom: 20 }}>
-      <h1>Youtube Chat Trivia</h1>
-      <h2>Connection Info</h2>
-
+      <h2>Youtube Livestream Trivia Game</h2>
+      <h3>Connection Info</h3>
       <div style={{ marginBottom: 8 }}>
         <label style={{ width: 120, display: "inline-block" }}>User name:</label>
         <input
