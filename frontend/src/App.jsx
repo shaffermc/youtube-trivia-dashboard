@@ -9,6 +9,12 @@ const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
 function App() {
   const [msg, setMsg] = useState("Loading...");
   const [currentUserName, setCurrentUserName] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+
+
+  const handleQuestionAdded = () => {
+    setRefreshKey((k) => k + 1);
+  };
 
   useEffect(() => {
     fetch(`${API_BASE}/health`)
@@ -50,8 +56,8 @@ function App() {
           {currentUserName ? (
             <>
               <h2>Questions and Answers</h2>
-              <AddQuestionForm userName={currentUserName} />
-              <QuestionsList userName={currentUserName} />
+              <AddQuestionForm userName={currentUserName} onQuestionAdded={handleQuestionAdded} />
+              <QuestionsList userName={currentUserName} refreshKey={refreshKey} />
             </>
           ) : (
             <p>Enter username and load settings to edit questions.</p>

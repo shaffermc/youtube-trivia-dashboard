@@ -34,7 +34,7 @@ export default function QuestionsList({ userName }) {
     };
 
     fetchQuestions();
-  }, [userName]);
+  }, [userName, refreshKey]);
 
   const startEdit = (q) => {
     setEditingId(q._id);

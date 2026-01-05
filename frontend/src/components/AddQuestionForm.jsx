@@ -32,7 +32,9 @@ export default function AddQuestionForm({ userName }) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Failed to add question");
       }
-
+      const created = await res.json();
+      if (onQuestionAdded) onQuestionAdded(created);
+      
       setStatus("Question added!");
       setQuestionText("");
       setAnswerText("");
