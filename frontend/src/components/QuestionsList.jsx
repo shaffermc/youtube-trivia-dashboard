@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
 
-export default function QuestionsList({ userName }) {
+export default function QuestionsList({ userName, refreshKey }) {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState("");

@@ -2,7 +2,7 @@ import { useState } from "react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
 
-export default function AddQuestionForm({ userName }) {
+export default function AddQuestionForm({ userName, onQuestionAdded }) {
   const [questionText, setQuestionText] = useState("");
   const [answerText, setAnswerText] = useState("");
   const [status, setStatus] = useState("");
@@ -34,7 +34,7 @@ export default function AddQuestionForm({ userName }) {
       }
       const created = await res.json();
       if (onQuestionAdded) onQuestionAdded(created);
-      
+
       setStatus("Question added!");
       setQuestionText("");
       setAnswerText("");
