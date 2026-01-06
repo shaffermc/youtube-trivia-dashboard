@@ -137,6 +137,33 @@ app.get("/questions", async (req, res) => {
 });
 
 
+router.post("/questions/bulk", async (req, res) => {
+  try {
+    const { userName, questions } = req.body;
+
+    if (!userName) {
+      return res.status(400).json({ error: "userName is required" });
+    }
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ error: "questions array is required" });
+    }
+
+    // questions is expected to be [{ questionText, answerText }, ...]
+    const docs = questions.map((q) => ({
+      userName,
+      questionText: q.questionText,
+      answerText: q.answerText,
+    }));
+
+    const inserted = await Question.insertMany(docs);
+
+    res.json(inserted);
+  } catch (err) {
+    console.error("Bulk insert error:", err);
+    res.status(500).json({ error: "Failed to import questions" });
+  }
+});
+
 // Update a question
 app.put("/questions/:id", async (req, res) => {
   try {

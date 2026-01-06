@@ -3,6 +3,7 @@ import AddQuestionForm from "./components/AddQuestionForm";
 import QuestionsList from "./components/QuestionsList";
 import ChatMessagesViewer from "./components/ChatMessagesViewer";
 import ConnectionInfoPanel from "./components/ConnectionInfoPanel";
+import ImportQuestionsFromFile from "./components/ImportQuestionsFromFile";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
 
@@ -57,6 +58,7 @@ function App() {
             <>
               <h2>Questions and Answers</h2>
               <AddQuestionForm userName={currentUserName} onQuestionAdded={handleQuestionAdded} />
+              <ImportQuestionsFromFile userName={currentUserName} onImported={handleQuestionAdded} />
               <QuestionsList userName={currentUserName} refreshKey={refreshKey} />
             </>
           ) : (
