@@ -1,4 +1,3 @@
-// src/components/ImportQuestionsFromFile.jsx
 import { useState } from "react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
@@ -12,26 +11,6 @@ export default function ImportQuestionsFromFile({ userName, onImported }) {
     const f = e.target.files?.[0];
     setFile(f || null);
     setStatus("");
-  };
-
-  const parseText = (text) => {
-    const lines = text.split(/\r?\n/);
-    const result = [];
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) continue; // skip empty/comments
-
-      const [q, a] = trimmed.split("|");
-      if (!q || !a) continue;
-
-      result.push({
-        questionText: q.trim(),
-        answerText: a.trim(),
-      });
-    }
-
-    return result;
   };
 
   const handleImport = async () => {
@@ -49,19 +28,23 @@ export default function ImportQuestionsFromFile({ userName, onImported }) {
       setStatus("Reading file...");
 
       const text = await file.text();
-      const questions = parseText(text);
+      // split into lines and send raw; backend will parse "Q#A"
+      const lines = text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
 
-      if (questions.length === 0) {
-        setStatus("No valid questions found in file.");
+      if (lines.length === 0) {
+        setStatus("No non-empty lines found in file.");
         return;
       }
 
-      setStatus(`Parsed ${questions.length} questions. Uploading...`);
+      setStatus(`Parsed ${lines.length} lines. Uploading...`);
 
       const res = await fetch(`${API_BASE}/questions/bulk`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userName, questions }),
+        body: JSON.stringify({ userName, lines }), 
       });
 
       const data = await res.json();
@@ -69,9 +52,9 @@ export default function ImportQuestionsFromFile({ userName, onImported }) {
         throw new Error(data.error || "Failed to import questions");
       }
 
-      setStatus(`Imported ${data.length} question(s).`);
+      setStatus(`Imported ${data.inserted} question(s).`);
 
-      if (onImported) onImported(data); // so App can bump refreshKey
+      if (onImported) onImported(); 
     } catch (err) {
       console.error("Import error:", err);
       setStatus(err.message || "Error importing questions");
@@ -84,7 +67,7 @@ export default function ImportQuestionsFromFile({ userName, onImported }) {
     <div style={{ marginTop: 20, maxWidth: 600 }}>
       <h3>Import Questions From File</h3>
       <p style={{ fontSize: "0.9em" }}>
-        Format: <code>Question text|Answer text</code> per line.
+        Format per line: <code>Question text#Answer text</code>
       </p>
 
       <input

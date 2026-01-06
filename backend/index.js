@@ -136,34 +136,6 @@ app.get("/questions", async (req, res) => {
   }
 });
 
-
-router.post("/questions/bulk", async (req, res) => {
-  try {
-    const { userName, questions } = req.body;
-
-    if (!userName) {
-      return res.status(400).json({ error: "userName is required" });
-    }
-    if (!Array.isArray(questions) || questions.length === 0) {
-      return res.status(400).json({ error: "questions array is required" });
-    }
-
-    // questions is expected to be [{ questionText, answerText }, ...]
-    const docs = questions.map((q) => ({
-      userName,
-      questionText: q.questionText,
-      answerText: q.answerText,
-    }));
-
-    const inserted = await Question.insertMany(docs);
-
-    res.json(inserted);
-  } catch (err) {
-    console.error("Bulk insert error:", err);
-    res.status(500).json({ error: "Failed to import questions" });
-  }
-});
-
 // Update a question
 app.put("/questions/:id", async (req, res) => {
   try {
@@ -316,7 +288,12 @@ app.post("/settings/load", async (req, res) => {
 
 app.post("/questions/bulk", async (req, res) => {
   try {
-    const { lines } = req.body; // array of strings e.g. "What is 2+2#4"
+    const { userName, lines } = req.body; // userName + array of strings e.g. "What is 2+2#4"
+
+    if (!userName) {
+      return res.status(400).json({ error: "userName is required" });
+    }
+
     if (!Array.isArray(lines)) {
       return res.status(400).json({ error: "lines must be an array" });
     }
@@ -326,8 +303,16 @@ app.post("/questions/bulk", async (req, res) => {
       .filter((line) => line.length > 0 && line.includes("#"))
       .map((line) => {
         const [q, a] = line.split("#");
-        return { questionText: q.trim(), answerText: a.trim() };
+        return {
+          questionText: q.trim(),
+          answerText: a.trim(),
+          ownerUserName: userName, // associate with this user
+        };
       });
+
+    if (docs.length === 0) {
+      return res.status(400).json({ error: "No valid questions in lines" });
+    }
 
     const inserted = await Question.insertMany(docs);
     res.json({ inserted: inserted.length });
@@ -395,5 +380,5 @@ app.delete("/scores/:id", async (req, res) => {
 const PORT = process.env.PORT || 3002;
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
