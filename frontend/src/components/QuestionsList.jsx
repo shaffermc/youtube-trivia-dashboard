@@ -11,17 +11,19 @@ export default function QuestionsList({ userName, refreshKey }) {
   const [editQuestionText, setEditQuestionText] = useState("");
   const [editAnswerText, setEditAnswerText] = useState("");
 
-  // Load questions
   useEffect(() => {
     if (!userName) {
       setQuestions([]);
+      setLoading(false);
       return;
     }
     const fetchQuestions = async () => {
       setLoading(true);
-      setStatus("Loading questions");
+      setStatus("Loading questions…");
       try {
-        const res = await fetch(`${API_BASE}/questions?userName=${encodeURIComponent(userName)}`);
+        const res = await fetch(
+          `${API_BASE}/questions?userName=${encodeURIComponent(userName)}`
+        );
         const data = await res.json();
         setQuestions(data);
         setStatus("");
@@ -95,28 +97,22 @@ export default function QuestionsList({ userName, refreshKey }) {
     }
   };
 
-  if (loading) return <p>Loading questions...</p>;
+  if (loading) return <p className="status-text">Loading questions…</p>;
 
   return (
-    <div style={{ marginTop: 30 }}>
-      <h2>Questions</h2>
-      {status && <div style={{ marginBottom: 10 }}>{status}</div>}
+    <div style={{ marginTop: 18 }}>
+      <h2 style={{ margin: "0 0 8px", fontSize: 15 }}>Questions</h2>
+      {status && <div className="status-text">{status}</div>}
 
       {questions.length === 0 ? (
-        <p>No questions found.</p>
+        <div className="empty-state">No questions found.</div>
       ) : (
-        <table
-          style={{
-            borderCollapse: "collapse",
-            width: "100%",
-            maxWidth: "900px",
-          }}
-        >
+        <table className="table">
           <thead>
             <tr>
-              <th style={thStyle}>Question</th>
-              <th style={thStyle}>Answer</th>
-              <th style={thStyle}>Actions</th>
+              <th>Question</th>
+              <th>Answer</th>
+              <th style={{ width: 160 }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -124,13 +120,11 @@ export default function QuestionsList({ userName, refreshKey }) {
               const isEditing = editingId === q._id;
               return (
                 <tr key={q._id}>
-                  <td style={tdStyle}>
+                  <td>
                     {isEditing ? (
                       <textarea
                         value={editQuestionText}
-                        onChange={(e) =>
-                          setEditQuestionText(e.target.value)
-                        }
+                        onChange={(e) => setEditQuestionText(e.target.value)}
                         rows={3}
                         style={{ width: "100%" }}
                       />
@@ -138,43 +132,52 @@ export default function QuestionsList({ userName, refreshKey }) {
                       q.questionText
                     )}
                   </td>
-                  <td style={tdStyle}>
+                  <td>
                     {isEditing ? (
                       <input
+                        className="input"
                         type="text"
                         value={editAnswerText}
-                        onChange={(e) =>
-                          setEditAnswerText(e.target.value)
-                        }
-                        style={{ width: "100%" }}
+                        onChange={(e) => setEditAnswerText(e.target.value)}
                       />
                     ) : (
                       q.answerText
                     )}
                   </td>
-                  <td style={tdStyle}>
+                  <td>
                     {isEditing ? (
-                      <>
+                      <div className="btn-row">
                         <button
+                          className="btn"
                           onClick={() => saveEdit(q._id)}
-                          style={{ marginRight: 8 }}
                         >
                           Save
                         </button>
-                        <button onClick={cancelEdit}>Cancel</button>
-                      </>
-                    ) : (
-                      <>
                         <button
+                          className="btn btn-secondary"
+                          type="button"
+                          onClick={cancelEdit}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="btn-row">
+                        <button
+                          className="btn btn-secondary"
+                          type="button"
                           onClick={() => startEdit(q)}
-                          style={{ marginRight: 8 }}
                         >
                           Edit
                         </button>
-                        <button onClick={() => deleteQuestion(q._id)}>
+                        <button
+                          className="btn btn-danger"
+                          type="button"
+                          onClick={() => deleteQuestion(q._id)}
+                        >
                           Delete
                         </button>
-                      </>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -186,15 +189,3 @@ export default function QuestionsList({ userName, refreshKey }) {
     </div>
   );
 }
-
-const thStyle = {
-  borderBottom: "1px solid #ccc",
-  textAlign: "left",
-  padding: "8px",
-};
-
-const tdStyle = {
-  borderBottom: "1px solid #eee",
-  padding: "8px",
-  verticalAlign: "top",
-};

@@ -28,7 +28,6 @@ export default function ImportQuestionsFromFile({ userName, onImported }) {
       setStatus("Reading file...");
 
       const text = await file.text();
-      // split into lines and send raw; backend will parse "Q#A"
       const lines = text
         .split(/\r?\n/)
         .map((line) => line.trim())
@@ -44,7 +43,7 @@ export default function ImportQuestionsFromFile({ userName, onImported }) {
       const res = await fetch(`${API_BASE}/questions/bulk`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userName, lines }), 
+        body: JSON.stringify({ userName, lines }),
       });
 
       const data = await res.json();
@@ -54,7 +53,7 @@ export default function ImportQuestionsFromFile({ userName, onImported }) {
 
       setStatus(`Imported ${data.inserted} question(s).`);
 
-      if (onImported) onImported(); 
+      if (onImported) onImported();
     } catch (err) {
       console.error("Import error:", err);
       setStatus(err.message || "Error importing questions");
@@ -64,24 +63,30 @@ export default function ImportQuestionsFromFile({ userName, onImported }) {
   };
 
   return (
-    <div style={{ marginTop: 20, maxWidth: 600 }}>
-      <h3>Import Questions From File</h3>
-      <p style={{ fontSize: "0.9em" }}>
+    <div>
+      <h3 style={{ margin: 0, fontSize: 14 }}>Import Questions From File</h3>
+      <p className="field-help">
         Format per line: <code>Question text#Answer text</code>
       </p>
 
-      <input
-        type="file"
-        accept=".txt"
-        onChange={handleFileChange}
-        style={{ marginRight: 8 }}
-      />
+      <div className="form-row-inline">
+        <input
+          type="file"
+          accept=".txt"
+          onChange={handleFileChange}
+          style={{ fontSize: 13 }}
+        />
 
-      <button onClick={handleImport} disabled={loading || !file}>
-        {loading ? "Importing..." : "Import"}
-      </button>
+        <button
+          className="btn btn-secondary"
+          onClick={handleImport}
+          disabled={loading || !file}
+        >
+          {loading ? "Importing..." : "Import"}
+        </button>
+      </div>
 
-      {status && <div style={{ marginTop: 8 }}>{status}</div>}
+      {status && <div className="status-text">{status}</div>}
     </div>
   );
 }

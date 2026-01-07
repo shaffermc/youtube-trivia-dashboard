@@ -47,41 +47,37 @@ export default function AddQuestionForm({ userName, onQuestionAdded }) {
   };
 
   return (
-    <div style={{ marginTop: 20, maxWidth: 600 }}>
-      <h2>Add Question</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: 8 }}>
-          <label style={{ display: "block", marginBottom: 4 }}>
-            Question:
-          </label>
+    <form onSubmit={handleSubmit}>
+      <div className="form-grid">
+        <div className="field">
+          <label className="field-label">Question</label>
           <textarea
             value={questionText}
             onChange={(e) => setQuestionText(e.target.value)}
             rows={3}
-            style={{ width: "100%" }}
             required
           />
         </div>
 
-        <div style={{ marginBottom: 8 }}>
-          <label style={{ display: "block", marginBottom: 4 }}>
-            Answer:
-          </label>
+        <div className="field">
+          <label className="field-label">Answer</label>
           <input
+            className="input"
             type="text"
             value={answerText}
             onChange={(e) => setAnswerText(e.target.value)}
-            style={{ width: "100%" }}
             required
           />
         </div>
+      </div>
 
-        <button type="submit" disabled={loading || !userName}>
-          {loading ? "Saving..." : "Add Question"}
+      <div className="btn-row">
+        <button className="btn" type="submit" disabled={loading || !userName}>
+          {loading ? "Saving…" : "Add Question"}
         </button>
+      </div>
 
-        {status && <div style={{ marginTop: 8 }}>{status}</div>}
-      </form>
-    </div>
+      {status && <div className="status-text">{status}</div>}
+    </form>
   );
 }

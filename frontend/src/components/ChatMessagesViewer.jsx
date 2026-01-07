@@ -10,7 +10,7 @@ export default function ChatMessagesViewer() {
   const [loading, setLoading] = useState(false);
 
   const [autoRefresh, setAutoRefresh] = useState(false);
-  const [pollInterval, setPollInterval] = useState(2000); // default 2s
+  const [pollInterval, setPollInterval] = useState(2000);
 
   const fetchMessages = useCallback(
     async (reset = false) => {
@@ -29,7 +29,9 @@ export default function ChatMessagesViewer() {
           params.set("pageToken", pageToken);
         }
 
-        const res = await fetch(`${API_BASE}/youtube/chat?${params.toString()}`);
+        const res = await fetch(
+          `${API_BASE}/youtube/chat?${params.toString()}`
+        );
         const data = await res.json();
 
         if (!res.ok) {
@@ -92,55 +94,59 @@ export default function ChatMessagesViewer() {
   }, [autoRefresh, liveChatId, pollInterval, fetchMessages]);
 
   return (
-    <div style={{ marginTop: 30 }}>
-      <h2>YouTube Live Chat Viewer</h2>
+    <div className="card">
+      <div className="card-header">
+        <h2 className="card-title">Live Chat Monitor</h2>
+        <span className="card-subtitle">
+          See messages as they arrive from your livestream.
+        </span>
+      </div>
 
-      <div style={{ marginBottom: 10 }}>
-        <label>Live Chat ID: </label>
-        <input
-          type="text"
-          value={liveChatId}
-          onChange={(e) => setLiveChatId(e.target.value)}
-          style={{ width: "320px", marginRight: 8 }}
-          placeholder="Paste liveChatId here"
-        />
+      <div className="form-row-inline">
+        <div className="field" style={{ flex: 1 }}>
+          <label className="field-label">Live Chat ID</label>
+          <input
+            className="input"
+            type="text"
+            value={liveChatId}
+            onChange={(e) => setLiveChatId(e.target.value)}
+            placeholder="Paste liveChatId here"
+          />
+        </div>
 
-        <button onClick={handleManualLoad} disabled={loading}>
-          {loading ? "Loading..." : "Load Messages"}
+        <button
+          className="btn"
+          type="button"
+          onClick={handleManualLoad}
+          disabled={loading}
+        >
+          {loading ? "Loading…" : "Load"}
         </button>
 
-        <label style={{ marginLeft: 16 }}>
+        <label
+          className="field-label"
+          style={{ display: "flex", alignItems: "center", gap: 4 }}
+        >
           <input
             type="checkbox"
             checked={autoRefresh}
             onChange={(e) => setAutoRefresh(e.target.checked)}
-            style={{ marginRight: 4 }}
           />
           Auto refresh
         </label>
       </div>
 
-      {status && <div style={{ marginBottom: 10 }}>{status}</div>}
+      {status && <div className="status-text">{status}</div>}
 
-      <div
-        style={{
-          maxHeight: "300px",
-          overflowY: "auto",
-          border: "1px solid #ccc",
-          padding: "8px",
-          maxWidth: "800px",
-        }}
-      >
+      <div className="chat-scroll">
         {messages.length === 0 ? (
-          <p>No messages loaded.</p>
+          <div className="empty-state">No messages loaded yet.</div>
         ) : (
           messages.map((m) => (
-            <div key={m.id} style={{ borderBottom: "1px solid #eee", padding: "4px 0" }}>
-              <div style={{ fontWeight: "bold" }}>{m.author}</div>
-              <div>{m.text}</div>
-              <div style={{ fontSize: "0.8em", color: "#666" }}>
-                {m.publishedAt}
-              </div>
+            <div key={m.id} className="chat-message">
+              <div className="chat-author">{m.author}</div>
+              <div className="chat-text">{m.text}</div>
+              <div className="chat-meta">{m.publishedAt}</div>
             </div>
           ))
         )}
