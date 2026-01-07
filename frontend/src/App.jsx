@@ -5,13 +5,14 @@ import ChatMessagesViewer from "./components/ChatMessagesViewer";
 import ConnectionInfoPanel from "./components/ConnectionInfoPanel";
 import ImportQuestionsFromFile from "./components/ImportQuestionsFromFile";
 
+import "./App.css";
+
 const API_BASE = import.meta.env.VITE_API_URL || "/trivia/api";
 
 function App() {
-  const [msg, setMsg] = useState("Loading...");
+  const [msg, setMsg] = useState("Checking server…");
   const [currentUserName, setCurrentUserName] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
-
 
   const handleQuestionAdded = () => {
     setRefreshKey((k) => k + 1);
@@ -20,70 +21,86 @@ function App() {
   useEffect(() => {
     fetch(`${API_BASE}/health`)
       .then((res) => res.json())
-      .then((data) => setMsg(`Server Status: ${data.status}`))
+      .then((data) => setMsg(`Server status: ${data.status}`))
       .catch((err) => {
         console.error("API error:", err);
-        setMsg("Failed to load message");
+        setMsg("Server status: offline");
       });
   }, []);
 
+  const isHealthy = msg.toLowerCase().includes("ok") || msg.toLowerCase().includes("running");
+
   return (
-    <div style={{ padding: 20, fontFamily: "sans-serif" }}>
-
-
-      {/* This is the TWO-COLUMN layout */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 24,
-          marginTop: 16,
-        }}
-      >
-        {/* LEFT COLUMN */}
-        <div
-          style={{
-            flex: 1,
-            minWidth: 0,
-            background: "#f9f9f9", // <-- TEMP so you can see the column
-            padding: 8,
-            borderRadius: 4,
-          }}
-        >
-          <ConnectionInfoPanel
-            onLoginUser={(userName) => setCurrentUserName(userName)}
-          />
-
-          {currentUserName ? (
-            <>
-              <h2>Questions and Answers</h2>
-              <AddQuestionForm userName={currentUserName} onQuestionAdded={handleQuestionAdded} />
-              <ImportQuestionsFromFile userName={currentUserName} onImported={handleQuestionAdded} />
-              <QuestionsList userName={currentUserName} refreshKey={refreshKey} />
-            </>
-          ) : (
-            <p>Enter username and load settings to edit questions.</p>
-          )}
-
-          <h3 style={{ marginTop: 24 }}>{msg}</h3>
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="app-title-block">
+          <h1 className="app-title">
+            YouTube Livestream Trivia
+            <span className="app-title-pill">Control Panel</span>
+          </h1>
+          <p className="app-subtitle">
+            Configure your channel, manage questions, and monitor live chat.
+          </p>
         </div>
+
+        <div className={`status-pill ${isHealthy ? "ok" : "error"}`}>
+          <span className="status-dot" />
+          <span>{msg}</span>
+        </div>
+      </header>
+
+      <main className="app-main">
+        {/* LEFT COLUMN */}
+        <section className="panel panel-left">
+          <div className="card">
+            <div className="card-header">
+              <h2 className="card-title">Connection & Game Settings</h2>
+              <span className="card-subtitle">
+                Load or save your configuration, then start the bot.
+              </span>
+            </div>
+            <ConnectionInfoPanel
+              onLoginUser={(userName) => setCurrentUserName(userName)}
+            />
+          </div>
+
+          <div className="card">
+            <div className="card-header">
+              <h2 className="card-title">Question Bank</h2>
+              <span className="card-subtitle">
+                Add, import, and edit questions used in your trivia game.
+              </span>
+            </div>
+            {currentUserName ? (
+              <>
+                <AddQuestionForm
+                  userName={currentUserName}
+                  onQuestionAdded={handleQuestionAdded}
+                />
+                <hr className="section-divider" />
+                <ImportQuestionsFromFile
+                  userName={currentUserName}
+                  onImported={handleQuestionAdded}
+                />
+                <QuestionsList
+                  userName={currentUserName}
+                  refreshKey={refreshKey}
+                />
+              </>
+            ) : (
+              <div className="empty-state">
+                Enter your username & password above and click <strong>Load
+                settings</strong> to start editing questions.
+              </div>
+            )}
+          </div>
+        </section>
 
         {/* RIGHT COLUMN */}
-        <div
-          style={{
-            width: "60%",
-            minWidth: 320,
-            maxWidth: 700,
-            minHeight: 600,
-            maxHeight: 700,
-            background: "#eef5ff", // <-- TEMP so you can see the column
-            padding: 8,
-            borderRadius: 4,
-          }}
-        >
+        <aside className="panel panel-right">
           <ChatMessagesViewer />
-        </div>
-      </div>
+        </aside>
+      </main>
     </div>
   );
 }

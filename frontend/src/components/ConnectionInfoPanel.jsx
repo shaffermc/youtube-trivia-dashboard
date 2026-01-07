@@ -14,10 +14,9 @@ export default function ConnectionInfoPanel({ onLoginUser }) {
   const [running, setRunning] = useState(false);
   const [status, setStatus] = useState("");
 
-  // Load saved settings from backend
   const loadSettings = async () => {
     try {
-      setStatus("Loading settings...");
+      setStatus("Loading settings…");
       const res = await fetch(`${API_BASE}/settings/load`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -31,9 +30,9 @@ export default function ConnectionInfoPanel({ onLoginUser }) {
       setDelayMs(String(data.questionDelayMs || 30000));
       setMessage(data.defaultMessage || "");
 
-    if (onLoginUser) {
-      onLoginUser(userName);
-    }
+      if (onLoginUser) {
+        onLoginUser(userName);
+      }
 
       setStatus("Settings loaded.");
     } catch (err) {
@@ -42,10 +41,9 @@ export default function ConnectionInfoPanel({ onLoginUser }) {
     }
   };
 
-  // Save current settings to backend
   const saveSettings = async () => {
     try {
-      setStatus("Saving settings...");
+      setStatus("Saving settings…");
       const res = await fetch(`${API_BASE}/settings/save`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -69,7 +67,7 @@ export default function ConnectionInfoPanel({ onLoginUser }) {
 
   const startTrivia = async () => {
     try {
-      setStatus("Starting trivia...");
+      setStatus("Starting trivia…");
       const res = await fetch(`${API_BASE}/game/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -91,10 +89,8 @@ export default function ConnectionInfoPanel({ onLoginUser }) {
 
   const stopTrivia = async () => {
     try {
-      setStatus("Stopping trivia...");
-      const res = await fetch(`${API_BASE}/game/stop`, {
-        method: "POST",
-      });
+      setStatus("Stopping trivia…");
+      const res = await fetch(`${API_BASE}/game/stop`, { method: "POST" });
       const data = await res.json();
       setRunning(data.running);
       setStatus("Trivia stopped.");
@@ -107,17 +103,14 @@ export default function ConnectionInfoPanel({ onLoginUser }) {
   const sendManualMessage = async () => {
     try {
       if (!liveChatId || !message.trim()) {
-        setStatus("Need liveChatId and message");
+        setStatus("Need liveChatId and message.");
         return;
       }
-      setStatus("Sending message...");
+      setStatus("Sending message…");
       const res = await fetch(`${API_BASE}/youtube/chat/send`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          liveChatId,
-          message,
-        }),
+        body: JSON.stringify({ liveChatId, message }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send message");
@@ -129,95 +122,122 @@ export default function ConnectionInfoPanel({ onLoginUser }) {
   };
 
   return (
-    <div style={{ border: "1px solid #ccc", padding: 16, marginBottom: 20 }}>
-      <h2>Youtube Livestream Trivia Game</h2>
-      <h3>Connection Info</h3>
-      <div style={{ marginBottom: 8 }}>
-        <label style={{ width: 120, display: "inline-block" }}>User name:</label>
-        <input
-          type="text"
-          value={userName}
-          onChange={(e) => setUserName(e.target.value)}
-          style={{ width: 200 }}
-        />
+    <>
+      <div className="form-grid" style={{ marginBottom: 10 }}>
+        <div className="field">
+          <label className="field-label">User name</label>
+          <input
+            className="input"
+            type="text"
+            autoComplete="username"
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+          />
+        </div>
+
+        <div className="field">
+          <label className="field-label">Password</label>
+          <input
+            className="input"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
       </div>
 
-      <div style={{ marginBottom: 8 }}>
-        <label style={{ width: 120, display: "inline-block" }}>Password:</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{ width: 200 }}
-        />
-        <button onClick={loadSettings} style={{ marginLeft: 8 }}>
+      <div className="btn-row">
+        <button className="btn btn-secondary" onClick={loadSettings}>
           Load settings
         </button>
-        <button onClick={saveSettings} style={{ marginLeft: 8 }}>
+        <button className="btn btn-secondary" onClick={saveSettings}>
           Save settings
         </button>
       </div>
 
-      <div style={{ marginBottom: 8 }}>
-        <label style={{ width: 120, display: "inline-block" }}>Live Chat ID:</label>
-        <input
-          type="text"
-          value={liveChatId}
-          onChange={(e) => setLiveChatId(e.target.value)}
-          style={{ width: 400 }}
-          placeholder="Paste liveChatId"
-        />
+      <hr className="section-divider" />
+
+      <div className="form-grid">
+        <div className="field">
+          <label className="field-label">Live Chat ID</label>
+          <input
+            className="input"
+            type="text"
+            value={liveChatId}
+            onChange={(e) => setLiveChatId(e.target.value)}
+            placeholder="Paste liveChatId"
+          />
+          <span className="field-help">
+            Use the live chat ID from the YouTube Data API.
+          </span>
+        </div>
+
+        <div className="field">
+          <label className="field-label">YouTube Username (host)</label>
+          <input
+            className="input"
+            type="text"
+            value={youtubeHost}
+            onChange={(e) => setYoutubeHost(e.target.value)}
+            placeholder="Exact display name in chat"
+          />
+        </div>
+
+        <div className="field">
+          <label className="field-label">Delay between questions (ms)</label>
+          <input
+            className="input"
+            type="number"
+            value={delayMs}
+            onChange={(e) => setDelayMs(e.target.value)}
+          />
+          <span className="field-help">
+            Higher values slow the game down; 30,000 = 30 seconds.
+          </span>
+        </div>
+
+        <div className="field">
+          <label className="field-label">Bot / manual message</label>
+          <input
+            className="input"
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Manual message or default bot prompt"
+          />
+        </div>
       </div>
 
-      <div style={{ marginBottom: 8 }}>
-        <label style={{ width: 120, display: "inline-block" }}>
-          Youtube Username (host):
-        </label>
-        <input
-          type="text"
-          value={youtubeHost}
-          onChange={(e) => setYoutubeHost(e.target.value)}
-          style={{ width: 300 }}
-          placeholder="Exact display name in chat"
-        />
-      </div>
-
-      <div style={{ marginBottom: 8 }}>
-        <label style={{ width: 120, display: "inline-block" }}>
-          Delay between questions (ms):
-        </label>
-        <input
-          type="number"
-          value={delayMs}
-          onChange={(e) => setDelayMs(e.target.value)}
-          style={{ width: 120 }}
-        />
-      </div>
-
-      <div style={{ marginBottom: 8 }}>
-        <label style={{ width: 120, display: "inline-block" }}>Message:</label>
-        <input
-          type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          style={{ width: 400 }}
-          placeholder="Manual message or default bot message"
-        />
-        <button onClick={sendManualMessage} style={{ marginLeft: 8 }}>
-          Send
+      <div className="btn-row">
+        <button className="btn btn-secondary" onClick={sendManualMessage}>
+          Send to chat
         </button>
       </div>
 
-      <div style={{ marginBottom: 8 }}>
-        <button onClick={startTrivia} disabled={running}>
+      <div className="btn-row" style={{ marginTop: 10 }}>
+        <button className="btn" onClick={startTrivia} disabled={running}>
           Start trivia
         </button>
-        <button onClick={stopTrivia} disabled={!running} style={{ marginLeft: 8 }}>
+        <button
+          className="btn btn-danger"
+          onClick={stopTrivia}
+          disabled={!running}
+        >
           Stop trivia
         </button>
       </div>
 
-      {status && <div style={{ marginTop: 8 }}>Status: {status}</div>}
-    </div>
+      {status && (
+        <div
+          className={
+            "status-text " +
+            (status.toLowerCase().includes("error") ? "status-text-error" : "")
+          }
+        >
+          {status}
+        </div>
+      )}
+    </>
   );
 }
