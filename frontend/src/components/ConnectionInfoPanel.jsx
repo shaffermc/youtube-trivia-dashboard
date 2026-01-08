@@ -14,6 +14,44 @@ export default function ConnectionInfoPanel({ onLoginUser }) {
   const [running, setRunning] = useState(false);
   const [status, setStatus] = useState("");
 
+  const [fetchingLiveChatId, setFetchingLiveChatId] = useState(false);
+
+  const fetchLiveChatIdFromYouTube = async () => {
+    try {
+      setFetchingLiveChatId(true);
+      setStatus("Checking for active livestream…");
+
+      const res = await fetch(`${API_BASE}/youtube/live/active`);
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to fetch active livestreams");
+      }
+
+      const items = Array.isArray(data.items) ? data.items : [];
+      if (items.length === 0) {
+        setStatus("No active livestream found.");
+        return;
+      }
+
+      // Pick the first active broadcast (simple default)
+      const first = items[0];
+
+      if (!first.liveChatId) {
+        setStatus(`Found an active stream, but chat is disabled (or no liveChatId).`);
+        return;
+      }
+
+      setLiveChatId(first.liveChatId);
+      setStatus(`LiveChatId loaded from: ${first.title || "active stream"}`);
+    } catch (err) {
+      console.error("fetchLiveChatIdFromYouTube error:", err);
+      setStatus(err.message || "Error fetching liveChatId");
+    } finally {
+      setFetchingLiveChatId(false);
+    }
+  };
+
   const loadSettings = async () => {
     try {
       setStatus("Loading settings…");
@@ -159,17 +197,32 @@ export default function ConnectionInfoPanel({ onLoginUser }) {
       <hr className="section-divider" />
 
       <div className="form-grid">
+        {/* Live Chat ID + NEW button next to it */}
         <div className="field">
           <label className="field-label">Live Chat ID</label>
-          <input
-            className="input"
-            type="text"
-            value={liveChatId}
-            onChange={(e) => setLiveChatId(e.target.value)}
-            placeholder="Paste liveChatId"
-          />
+
+          <div className="form-row-inline">
+            <input
+              className="input"
+              type="text"
+              value={liveChatId}
+              onChange={(e) => setLiveChatId(e.target.value)}
+              placeholder="Paste liveChatId"
+              style={{ flex: 1 }}
+            />
+
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={fetchLiveChatIdFromYouTube}
+              disabled={fetchingLiveChatId}
+            >
+              {fetchingLiveChatId ? "Finding…" : "Use active stream"}
+            </button>
+          </div>
+
           <span className="field-help">
-            Use the live chat ID from the YouTube Data API.
+            Paste a liveChatId, or click “Use active stream” to fetch it automatically.
           </span>
         </div>
 
