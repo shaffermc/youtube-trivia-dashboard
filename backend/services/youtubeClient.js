@@ -34,6 +34,27 @@ async function getYouTubeClient() {
   return youtubeClient;
 }
 
+async function listActiveBroadcasts() {
+  const yt = await getYouTubeClient();
+
+  const res = await yt.liveBroadcasts.list({
+    part: ["snippet", "status", "contentDetails"],
+    broadcastStatus: "active", // only currently-live broadcasts
+    maxResults: 50,
+  });
+
+  const items = res.data.items || [];
+
+  return items.map((b) => ({
+    broadcastId: b.id,
+    title: b.snippet?.title || "",
+    liveChatId: b.snippet?.liveChatId || null,
+    lifeCycleStatus: b.status?.lifeCycleStatus || null,
+    publishedAt: b.snippet?.publishedAt || null,
+  }));
+}
+
+
 async function listChatMessages(liveChatId, pageToken) {
   const yt = await getYouTubeClient();
 
@@ -83,4 +104,6 @@ async function sendChatMessage(liveChatId, messageText) {
 module.exports = {
   listChatMessages,
   sendChatMessage,
+  listActiveBroadcasts,
 };
+

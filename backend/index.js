@@ -7,7 +7,7 @@ const Question = require("./models/Question");
 const triviaEngine = require("./services/triviaEngine");
 const Settings = require("./models/Settings");
 
-const { listChatMessages, sendChatMessage } = require("./services/youtubeClient");
+const { listChatMessages, sendChatMessage, listActiveBroadcasts } = require("./services/youtubeClient");
 
 
 const app = express();
@@ -237,6 +237,25 @@ app.get("/youtube/chat", async (req, res) => {
   }
 });
 
+// List all currently active livestreams + their liveChatId (if chat enabled)
+app.get("/youtube/live/active", async (req, res) => {
+  try {
+    const items = await listActiveBroadcasts();
+
+    // Filter out ones that have no chat if you want (optional)
+    // const withChat = items.filter((x) => x.liveChatId);
+
+    res.json({
+      count: items.length,
+      items,
+    });
+  } catch (err) {
+    console.error("Error listing active broadcasts:", err.response?.data || err.message);
+    res.status(500).json({ error: "Failed to list active broadcasts" });
+  }
+});
+
+
 app.post("/youtube/chat/send", async (req, res) => {
   try {
     const { liveChatId, message } = req.body;
@@ -253,36 +272,6 @@ app.post("/youtube/chat/send", async (req, res) => {
     console.error("Error sending chat message:");
     console.error(err.response?.data || err.message);
     res.status(500).json({ error: "Failed to send chat message" });
-  }
-});
-
-app.post("/settings/save", async (req, res) => {
-  const { userName, password, liveChatId, youtubeHostName, questionDelayMs, defaultMessage } =
-    req.body;
-
-  try {
-    const settings = await Settings.findOneAndUpdate(
-      { userName },
-      { userName, password, liveChatId, youtubeHostName, questionDelayMs, defaultMessage },
-      { upsert: true, new: true }
-    );
-    res.json(settings);
-  } catch (err) {
-    console.error("Save settings error:", err.message);
-    res.status(500).json({ error: "Failed to save settings" });
-  }
-});
-
-// Load settings
-app.post("/settings/load", async (req, res) => {
-  const { userName, password } = req.body;
-  try {
-    const settings = await Settings.findOne({ userName, password });
-    if (!settings) return res.status(404).json({ error: "Settings not found" });
-    res.json(settings);
-  } catch (err) {
-    console.error("Load settings error:", err.message);
-    res.status(500).json({ error: "Failed to load settings" });
   }
 });
 
