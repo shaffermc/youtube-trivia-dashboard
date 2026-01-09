@@ -16,6 +16,11 @@ export default function ConnectionInfoPanel({ onLoginUser }) {
 
   const [fetchingLiveChatId, setFetchingLiveChatId] = useState(false);
 
+  const [connected, setConnected] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+
   const fetchLiveChatIdFromYouTube = async () => {
     try {
       setFetchingLiveChatId(true);
@@ -50,6 +55,24 @@ export default function ConnectionInfoPanel({ onLoginUser }) {
     } finally {
       setFetchingLiveChatId(false);
     }
+  };
+
+
+  const refreshServerState = async () => {
+  try {
+    const [ytRes, gameRes] = await Promise.all([
+      fetch(`${API_BASE}/youtube/state`),
+      fetch(`${API_BASE}/game/state`),
+    ]);
+
+    const yt = await ytRes.json();
+    const game = await gameRes.json();
+
+    setConnected(!!yt.connected);
+    setRunning(!!game.running);
+  } catch {
+    // ignore, UI will still work
+  }
   };
 
   const loadSettings = async () => {
@@ -110,7 +133,6 @@ export default function ConnectionInfoPanel({ onLoginUser }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          liveChatId,
           youtubeName: youtubeHost,
           delayMs: Number(delayMs) || undefined,
         }),
@@ -135,6 +157,55 @@ export default function ConnectionInfoPanel({ onLoginUser }) {
     } catch (err) {
       console.error("stopTrivia error:", err);
       setStatus("Error stopping trivia");
+    }
+  };
+
+
+  const connectToYouTube = async () => {
+  try {
+    if (!liveChatId) {
+      setStatus("Set liveChatId first (paste or Use active stream).");
+      return;
+    }
+    setConnecting(true);
+    setStatus("Connecting to YouTube…");
+
+    const res = await fetch(`${API_BASE}/youtube/connect`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ liveChatId, startedBy: "web" }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to connect");
+
+    setConnected(true);
+    setStatus("Connected to YouTube (polling chat).");
+  } catch (err) {
+    console.error(err);
+    setStatus(err.message || "Error connecting");
+  } finally {
+    setConnecting(false);
+  }
+};
+
+  const disconnectFromYouTube = async () => {
+    try {
+      setDisconnecting(true);
+      setStatus("Disconnecting…");
+
+      const res = await fetch(`${API_BASE}/youtube/disconnect`, {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to disconnect");
+
+      setConnected(false);
+      setStatus("Disconnected from YouTube.");
+    } catch (err) {
+      console.error(err);
+      setStatus(err.message || "Error disconnecting");
+    } finally {
+      setDisconnecting(false);
     }
   };
 
@@ -269,17 +340,44 @@ export default function ConnectionInfoPanel({ onLoginUser }) {
       </div>
 
       <div className="btn-row" style={{ marginTop: 10 }}>
-        <button className="btn" onClick={startTrivia} disabled={running}>
+        <button
+          className="btn btn-secondary"
+          type="button"
+          onClick={connectToYouTube}
+          disabled={connecting || connected}
+        >
+          {connecting ? "Connecting…" : "Connect to YouTube"}
+        </button>
+
+        <button
+          className="btn btn-secondary"
+          type="button"
+          onClick={disconnectFromYouTube}
+          disabled={disconnecting || !connected}
+        >
+          {disconnecting ? "Disconnecting…" : "Disconnect YouTube"}
+        </button>
+
+        <button
+          className="btn"
+          type="button"
+          onClick={startTrivia}
+          disabled={running || !connected}
+          title={!connected ? "Connect to YouTube first" : ""}
+        >
           Start trivia
         </button>
+
         <button
           className="btn btn-danger"
+          type="button"
           onClick={stopTrivia}
           disabled={!running}
         >
           Stop trivia
         </button>
       </div>
+
 
       {status && (
         <div

@@ -6,9 +6,12 @@ const Score = require("./models/Score");
 const Question = require("./models/Question");
 const triviaEngine = require("./services/triviaEngine");
 const Settings = require("./models/Settings");
+const youtubeConnection = require("./services/youtubeConnection");
 
 const { listChatMessages, sendChatMessage, listActiveBroadcasts } = require("./services/youtubeClient");
 
+// Wire chat messages -> trivia engine
+youtubeConnection.onMessage((msg) => triviaEngine.onChatMessage(msg));
 
 const app = express();
 app.use(cors());
@@ -33,6 +36,43 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
 });
+
+app.post("/youtube/connect", async (req, res) => {
+  try {
+    const { liveChatId, startedBy } = req.body;
+    if (!liveChatId) return res.status(400).json({ error: "liveChatId is required" });
+
+    const state = await youtubeConnection.connect(liveChatId, startedBy || "web");
+
+    // Attach trivia engine to the same chat
+    triviaEngine.attachToLiveChat(liveChatId);
+
+    res.json({ ok: true, state });
+  } catch (err) {
+    console.error("connect error:", err.message);
+    res.status(500).json({ error: err.message || "Failed to connect" });
+  }
+});
+
+app.post("/youtube/disconnect", (req, res) => {
+  youtubeConnection.disconnect();
+
+  // Detach (and stop trivia)
+  triviaEngine.detachLiveChat();
+
+  res.json({ ok: true, state: youtubeConnection.getState() });
+});
+
+app.get("/youtube/state", (req, res) => {
+  res.json(youtubeConnection.getState());
+});
+
+
+// Connection state (so UI knows if connected)
+app.get("/youtube/state", (req, res) => {
+  res.json(youtubeConnection.getState());
+});
+
 
 // Load settings by userName/password
 app.post("/settings/load", async (req, res) => {
@@ -194,26 +234,27 @@ app.get("/scores/highscores", async (req, res) => {
 
 app.post("/game/start", async (req, res) => {
   try {
-    const { liveChatId, youtubeName, delayMs } = req.body;
+    const { youtubeName, delayMs } = req.body;
 
-    if (!liveChatId) {
-      return res.status(400).json({ error: "liveChatId is required" });
+    // must be connected first
+    const ytState = youtubeConnection.getState();
+    if (!ytState.connected || !ytState.liveChatId) {
+      return res.status(400).json({ error: "Not connected to YouTube. Connect first." });
     }
 
-    await triviaEngine.start(liveChatId, youtubeName, delayMs);
-
-    res.json({ running: triviaEngine.isRunning() });
+    await triviaEngine.start({ youtubeName, delayMs, startedBy: "web" });
+    res.json({ running: triviaEngine.isRunning(), state: triviaEngine.getState() });
   } catch (err) {
-    console.error("Start game error:", err);
-    res.status(500).json({ error: "Failed to start game" });
+    console.error("Start game error:", err.message);
+    res.status(500).json({ error: err.message || "Failed to start game" });
   }
 });
 
-// Stop trivia
 app.post("/game/stop", (req, res) => {
-  triviaEngine.stop();
-  res.json({ running: triviaEngine.isRunning() });
+  triviaEngine.stop({ stoppedBy: "web" });
+  res.json({ running: triviaEngine.isRunning(), state: triviaEngine.getState() });
 });
+
 
 // Get current game state
 app.get("/game/state", (req, res) => {
