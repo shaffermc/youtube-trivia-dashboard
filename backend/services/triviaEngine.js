@@ -122,6 +122,24 @@ class TriviaEngine {
     };
   }
 
+  async postHighscores() {
+    if (!this.liveChatId) return;
+
+    const top = await Score.find().sort({ score: -1 }).limit(5);
+
+    if (!top || top.length === 0) {
+      await sendChatMessage(this.liveChatId, "No scores yet.");
+      return;
+    }
+
+    const line = top
+      .map((s, i) => `${i + 1}) ${s.userName}: ${s.score}`)
+      .join(" | ");
+
+    await sendChatMessage(this.liveChatId, `🏆 High Scores — ${line}`);
+  }
+
+
   // This is the key: called by YouTubeConnection for every incoming message
   async onChatMessage(msg) {
     // Phase 1: command parsing (safe even if trivia isn't running)
@@ -192,6 +210,12 @@ class TriviaEngine {
       }
       return;
     }
+    
+    if (text === "!highscores" || text === "!highscore") {
+      await this.postHighscores();
+      return;
+    }
+
   }
 
   async askNewQuestion() {
