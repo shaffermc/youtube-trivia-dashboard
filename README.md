@@ -1,0 +1,1 @@
+This is a trivia game that runs in the chatroom for a Youtube live stream. The program is configured as a MERN web app. Some of the features include: adding/deleting questions, starting/stopping the game, adjusting the time between questions, fetching the current livechatid from youtube, and displaying the top scoring users. 
